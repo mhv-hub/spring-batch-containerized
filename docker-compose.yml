@@ -1,0 +1,51 @@
+services:
+    database:
+        image: postgres
+        container_name: postgres_container
+        ports:
+            - 5432:5432
+        environment:
+            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_USER=postgres
+            - POSTGRES_DB=postgres
+        volumes:
+            - /home/mahavir/temp/dockerVolume:/var/lib/postgresql/data
+        restart: always
+
+    zookeeper:
+        image: zookeeper
+        container_name: zookeeper_container
+        ports:
+            - "2181:2181"
+        hostname: zookeeper
+
+    kafka:
+        image: ubuntu/kafka
+        ports:
+            - "9092:9092"
+        hostname: kafka
+        environment:
+            KAFKA_ADVERTISED_HOST_NAME: host.docker.internal
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+            KAFKA_ADVERTISED_PORT: 9092
+            HTTP_PROTOCOL: http
+        depends_on:
+            - "zookeeper"
+
+    app:
+        container_name: customer_batch_app_container
+        build: ./
+        ports:
+            - "9298:9298"
+        environment:
+            DB_URL: jdbc:postgresql://database:5432/postgres
+            DB_USER: postgres
+            DB_PASSWORD: postgres
+            KAFKA_URL: kafka:9092
+        volumes:
+            - /home/mahavir/temp/upload/customerData/:/home/app/data/customerData/
+            - /home/mahavir/temp/upload/customerRejectData/:/home/app/data/customerRejectData/
+        depends_on:
+            - database
+            - kafka
+        restart: always
